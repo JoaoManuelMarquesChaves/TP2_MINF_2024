@@ -1,9 +1,9 @@
 // Mc32Gest_RS232.C
 // Canevas manipulatio TP2 RS232 SLO2 2017-18
-// Fonctions d'émission et de réception des message
+// Fonctions d'Ã©mission et de rÃ©ception des message
 // CHR 20.12.2016 ajout traitement int error
 // CHR 22.12.2016 evolution des marquers observation int Usart
-// SCA 03.01.2018 nettoyé réponse interrupt pour ne laisser que les 3 ifs
+// SCA 03.01.2018 nettoyÃ© rÃ©ponse interrupt pour ne laisser que les 3 ifs
 
 #include <xc.h>
 #include <sys/attribs.h>
@@ -26,9 +26,9 @@ typedef union {
 // Definition pour les messages
 #define MESS_SIZE  5
 // avec int8_t besoin -86 au lieu de 0xAA
-#define STX_code  (-86)
+#define STX_code  0xAA //(-86)
 
-// Structure décrivant le message
+// Structure dÃ©crivant le message
 typedef struct {
     uint8_t Start;
     uint8_t  Speed;
@@ -38,35 +38,35 @@ typedef struct {
 } StruMess;
 
 
-// Struct pour émission des messages
+// Struct pour Ã©mission des messages
 StruMess TxMess;
-// Struct pour réception des messages
+// Struct pour rÃ©ception des messages
 StruMess RxMess;
 
-// Declaration des FIFO pour réception et émission
+// Declaration des FIFO pour rÃ©ception et Ã©mission
 #define FIFO_RX_SIZE ( (4*MESS_SIZE) + 1)  // 4 messages
 #define FIFO_TX_SIZE ( (4*MESS_SIZE) + 1)  // 4 messages
 
 int8_t fifoRX[FIFO_RX_SIZE];
-// Declaration du descripteur du FIFO de réception
+// Declaration du descripteur du FIFO de rÃ©ception
 S_fifo descrFifoRX;
 
 
 int8_t fifoTX[FIFO_TX_SIZE];
-// Declaration du descripteur du FIFO d'émission
+// Declaration du descripteur du FIFO d'Ã©mission
 S_fifo descrFifoTX;
 
 
-// Initialisation de la communication sérielle
+// Initialisation de la communication sÃ©rielle
 void InitFifoComm(void)
 {    
-    // Initialisation du fifo de réception
+    // Initialisation du fifo de rÃ©ception
     InitFifo ( &descrFifoRX, FIFO_RX_SIZE, fifoRX, 0 );
-    // Initialisation du fifo d'émission
+    // Initialisation du fifo d'Ã©mission
     InitFifo ( &descrFifoTX, FIFO_TX_SIZE, fifoTX, 0 );
     
     // Init RTS 
-    RS232_RTS = 1;   // interdit émission par l'autre
+    RS232_RTS = 1;   // interdit Ã©mission par l'autre
    
 } // InitComm
 
@@ -75,67 +75,67 @@ void InitFifoComm(void)
 /* Fonction :
     int GetMessage(S_pwmSettings *pData)
 
-  Résumé :
-    Cette fonction gère la réception de messages depuis une FIFO série.
-    Elle récupère les données de la FIFO série, vérifie l'intégrité du message
-    à l'aide d'un calcul de CRC, et met à jour la structure de paramètres PWM
-    (pData) en conséquence si le message est valide.
+  RÃ©sumÃ© :
+    Cette fonction gÃ¨re la rÃ©ception de messages depuis une FIFO sÃ©rie.
+    Elle rÃ©cupÃ¨re les donnÃ©es de la FIFO sÃ©rie, vÃ©rifie l'intÃ©gritÃ© du message
+    Ã  l'aide d'un calcul de CRC, et met Ã  jour la structure de paramÃ¨tres PWM
+    (pData) en consÃ©quence si le message est valide.
 
   Description :
-    La fonction commence par vérifier le nombre de caractères disponibles
-    dans la FIFO série. Si le nombre de caractères est suffisant et que le
+    La fonction commence par vÃ©rifier le nombre de caractÃ¨res disponibles
+    dans la FIFO sÃ©rie. Si le nombre de caractÃ¨res est suffisant et que le
     premier octet (Start byte) du message est correct, la fonction extrait
-    les champs du message (Speed et Angle), calcul le CRC, et vérifie
-    l'intégrité du message. Si le CRC est correct, la fonction met à jour
-    les paramètres de vitesse et d'angle dans la structure pData, et retourne
-    un statut indiquant qu'un message a été reçu avec succès.
+    les champs du message (Speed et Angle), calcul le CRC, et vÃ©rifie
+    l'intÃ©gritÃ© du message. Si le CRC est correct, la fonction met Ã  jour
+    les paramÃ¨tres de vitesse et d'angle dans la structure pData, et retourne
+    un statut indiquant qu'un message a Ã©tÃ© reÃ§u avec succÃ¨s.
 
     Si le message est incorrect (CRC incorrect ou Start byte incorrect),
-    la fonction clignote une LED pour signaler une erreur, incrémente un
-    compteur de cycles de réception, et ne met pas à jour la structure pData.
-    Si aucun message valide n'est reçu pendant plusieurs cycles, la fonction
-    réinitialise le statut de communication.
+    la fonction clignote une LED pour signaler une erreur, incrÃ©mente un
+    compteur de cycles de rÃ©ception, et ne met pas Ã  jour la structure pData.
+    Si aucun message valide n'est reÃ§u pendant plusieurs cycles, la fonction
+    rÃ©initialise le statut de communication.
 
-    La gestion du contrôle de flux de réception est également effectuée
-    pour autoriser ou désautoriser l'émission par l'autre partie.
+    La gestion du contrÃ´le de flux de rÃ©ception est Ã©galement effectuÃ©e
+    pour autoriser ou dÃ©sautoriser l'Ã©mission par l'autre partie.
 
-  Paramètres :
-    - pData : Un pointeur vers la structure de paramètres PWM (S_pwmSettings)
+  ParamÃ¨tres :
+    - pData : Un pointeur vers la structure de paramÃ¨tres PWM (S_pwmSettings)
               contenant les informations de vitesse et d'angle.
 
   Valeur de retour :
-    - 0 : Aucun message valide reçu, les données locales (pData) restent inchangées.
-    - 1 : Un message valide a été reçu et les données locales (pData) ont été mises à jour.
+    - 0 : Aucun message valide reÃ§u, les donnÃ©es locales (pData) restent inchangÃ©es.
+    - 1 : Un message valide a Ã©tÃ© reÃ§u et les donnÃ©es locales (pData) ont Ã©tÃ© mises Ã  jour.
 
 */
 int GetMessage(S_pwmSettings *pData) {
-    static uint8_t commStatus = 0;  // Statut de la communication (0 = pas de message, 1 = message reçu)
-    uint8_t NbCharToRed = 0;  // Nombre de caractères à lire dans la FIFO
-    static int IcycleRx = 0;  // Compteur de cycles de réception
+    static uint8_t commStatus = 0;  // Statut de la communication (0 = pas de message, 1 = message reÃ§u)
+    uint8_t NbCharToRed = 0;  // Nombre de caractÃ¨res Ã  lire dans la FIFO
+    static int IcycleRx = 0;  // Compteur de cycles de rÃ©ception
     uint16_t ValCrc;  // Valeur du CRC
 
-    // Vérifier le nombre de caractères à lire dans la FIFO série
+    // VÃ©rifier le nombre de caractÃ¨res Ã  lire dans la FIFO sÃ©rie
     NbCharToRed = GetReadSize(&descrFifoRX);
 
     // Lire le premier octet de la FIFO (Start byte)
     GetCharFromFifo(&descrFifoRX, &RxMess.Start);
 
-    // Si le nombre de caractères est suffisant et le Start byte est correct (0xAA)
-    if ((NbCharToRed >= MESS_SIZE) & (RxMess.Start == 0xAA)) {
+    // Si le nombre de caractÃ¨res est suffisant et le Start byte est correct (0xAA)
+    if ((NbCharToRed >= MESS_SIZE) & (RxMess.Start == STX_code)) {
         ValCrc = 0xFFFF;  // Initialiser la valeur du CRC
 
-        // Mettre à jour le CRC avec le Start byte
+        // Mettre Ã  jour le CRC avec le Start byte
         ValCrc = updateCRC16(ValCrc, RxMess.Start);
 
-        // Lire le champ Speed et mettre à jour le CRC
+        // Lire le champ Speed et mettre Ã  jour le CRC
         GetCharFromFifo(&descrFifoRX, &RxMess.Speed);
         ValCrc = updateCRC16(ValCrc, RxMess.Speed);
 
-        // Lire le champ Angle et mettre à jour le CRC
+        // Lire le champ Angle et mettre Ã  jour le CRC
         GetCharFromFifo(&descrFifoRX, &RxMess.Angle);
         ValCrc = updateCRC16(ValCrc, RxMess.Angle);
 
-        // Lire les octets du CRC (MSB et LSB) et mettre à jour le CRC
+        // Lire les octets du CRC (MSB et LSB) et mettre Ã  jour le CRC
         GetCharFromFifo(&descrFifoRX, &RxMess.MsbCrc);
         ValCrc = updateCRC16(ValCrc, RxMess.MsbCrc);
         GetCharFromFifo(&descrFifoRX, &RxMess.LsbCrc);
@@ -143,26 +143,26 @@ int GetMessage(S_pwmSettings *pData) {
 
         ValCrc = ValCrc;  // Ignorer la valeur finale du CRC (cette ligne semble inutile)
 
-        // Vérifier si le CRC est correct
+        // VÃ©rifier si le CRC est correct
         if (ValCrc == 0) {
-            // Mettre à jour les valeurs de vitesse et d'angle dans la structure pData
+            // Mettre Ã  jour les valeurs de vitesse et d'angle dans la structure pData
             pData->SpeedSetting = RxMess.Speed;
             pData->AngleSetting = RxMess.Angle;
 
-            // Mettre à jour le statut de communication
+            // Mettre Ã  jour le statut de communication
             commStatus = 1;
             IcycleRx = 0;
         } else {
             // Clignoter une LED pour signaler une erreur CRC
             LED6_W = !LED6_R;
             
-            // Réinitialiser le statut de communication et incrémenter le compteur de cycles
+            // RÃ©initialiser le statut de communication et incrÃ©menter le compteur de cycles
             commStatus = 0;
             IcycleRx++;
         }
     } else {
-        // Si le nombre de caractères à lire est insuffisant, ou si le Start byte est incorrect,
-        // gérer le compteur de cycles de réception
+        // Si le nombre de caractÃ¨res Ã  lire est insuffisant, ou si le Start byte est incorrect,
+        // gÃ©rer le compteur de cycles de rÃ©ception
         if (IcycleRx >= 10) {
             commStatus = 0;
             IcycleRx = 0;
@@ -170,9 +170,9 @@ int GetMessage(S_pwmSettings *pData) {
             IcycleRx++;
         }
     }
-    // Gestion du contrôle de flux de la réception
+    // Gestion du contrÃ´le de flux de la rÃ©ception
     if (GetWriteSpace(&descrFifoRX) >= (2 * MESS_SIZE)) {
-        // Autoriser l'émission par l'autre (abaisser le signal RTS)
+        // Autoriser l'Ã©mission par l'autre (abaisser le signal RTS)
         RS232_RTS = 0;
     }
     return commStatus;  // Retourner le statut de communication
@@ -183,29 +183,29 @@ int GetMessage(S_pwmSettings *pData) {
 /* Fonction :
     void SendMessage(S_pwmSettings *pData)
 
-  Résumé :
-    Cette fonction gère l'envoi cyclique de messages via une FIFO série.
-    Elle compose un message avec les paramètres de vitesse et d'angle contenus
-    dans la structure pData, calcule le CRC, et dépose le message dans la FIFO
-    d'émission. Elle gère également le contrôle de flux en autorisant ou
-    désautorisant l'émission en fonction de l'état du signal CTS (Clear To Send).
+  RÃ©sumÃ© :
+    Cette fonction gÃ¨re l'envoi cyclique de messages via une FIFO sÃ©rie.
+    Elle compose un message avec les paramÃ¨tres de vitesse et d'angle contenus
+    dans la structure pData, calcule le CRC, et dÃ©pose le message dans la FIFO
+    d'Ã©mission. Elle gÃ¨re Ã©galement le contrÃ´le de flux en autorisant ou
+    dÃ©sautorisant l'Ã©mission en fonction de l'Ã©tat du signal CTS (Clear To Send).
 
   Description :
-    La fonction commence par vérifier si suffisamment d'espace est disponible
-    dans la FIFO série pour écrire un message complet. Si c'est le cas, elle
-    compose le message en utilisant le format défini, y compris le Start byte,
+    La fonction commence par vÃ©rifier si suffisamment d'espace est disponible
+    dans la FIFO sÃ©rie pour Ã©crire un message complet. Si c'est le cas, elle
+    compose le message en utilisant le format dÃ©fini, y compris le Start byte,
     les champs Speed et Angle, ainsi que les octets du CRC. Elle utilise la
     fonction updateCRC16 pour calculer le CRC.
 
-    Ensuite, la fonction dépose chaque octet du message dans la FIFO d'émission
+    Ensuite, la fonction dÃ©pose chaque octet du message dans la FIFO d'Ã©mission
     en utilisant la fonction PutCharInFifo.
 
-    Enfin, la fonction gère le contrôle de flux. Si le signal CTS est bas (0)
-    et qu'il y a au moins un caractère à envoyer dans la FIFO d'émission, elle
-    autorise l'interruption d'émission pour déclencher l'envoi du message.
+    Enfin, la fonction gÃ¨re le contrÃ´le de flux. Si le signal CTS est bas (0)
+    et qu'il y a au moins un caractÃ¨re Ã  envoyer dans la FIFO d'Ã©mission, elle
+    autorise l'interruption d'Ã©mission pour dÃ©clencher l'envoi du message.
 
-  Paramètres :
-    - pData : Un pointeur vers la structure de paramètres PWM (S_pwmSettings)
+  ParamÃ¨tres :
+    - pData : Un pointeur vers la structure de paramÃ¨tres PWM (S_pwmSettings)
               contenant les informations de vitesse et d'angle.
 
 */
@@ -215,7 +215,7 @@ void SendMessage(S_pwmSettings *pData)
     U_manip16 valCrc16;
     valCrc16.val = 0xFFFF;
 
-    // Test si place pour écrire 1 message
+    // Test si place pour Ã©crire 1 message
     freeSize = GetWriteSpace(&descrFifoTX);
 
     if (freeSize >= MESS_SIZE)
@@ -232,7 +232,7 @@ void SendMessage(S_pwmSettings *pData)
         TxMess.MsbCrc = valCrc16.shl.msb;
         TxMess.LsbCrc = valCrc16.shl.lsb;
 
-        // Dépose le message dans la FIFO d'émission
+        // DÃ©pose le message dans la FIFO d'Ã©mission
         PutCharInFifo(&descrFifoTX, TxMess.Start);
         PutCharInFifo(&descrFifoTX, TxMess.Speed);
         PutCharInFifo(&descrFifoTX, TxMess.Angle);
@@ -240,12 +240,12 @@ void SendMessage(S_pwmSettings *pData)
         PutCharInFifo(&descrFifoTX, TxMess.LsbCrc);
     }
 
-    // Gestion du contrôle de flux
+    // Gestion du contrÃ´le de flux
     freeSize = GetReadSize(&descrFifoTX);
 
     if ((RS232_CTS == 0) && (freeSize > 0))
     {
-        // Autorise l'interruption d'émission
+        // Autorise l'interruption d'Ã©mission
         PLIB_INT_SourceEnable(INT_ID_0, INT_SOURCE_USART_1_TRANSMIT);
     }
 }
@@ -255,36 +255,36 @@ void SendMessage(S_pwmSettings *pData)
 // *****************************************************************************
 /* Routine d'interruption USART1
 
-  Résumé :
-    Cette routine gère les interruptions liées à l'USART1, incluant les erreurs,
-    la réception (RX), et la transmission (TX). Elle effectue le traitement
-    approprié en fonction de la nature de l'interruption.
+  RÃ©sumÃ© :
+    Cette routine gÃ¨re les interruptions liÃ©es Ã  l'USART1, incluant les erreurs,
+    la rÃ©ception (RX), et la transmission (TX). Elle effectue le traitement
+    appropriÃ© en fonction de la nature de l'interruption.
 
   Description :
-    La routine commence par marquer le début de l'interruption avec l'allumage
+    La routine commence par marquer le dÃ©but de l'interruption avec l'allumage
     de la LED3.
 
-    Ensuite, elle vérifie si l'interruption est liée à une erreur. Si c'est le cas,
-    elle traite l'erreur en lisant et en jetant les caractères du buffer de réception.
+    Ensuite, elle vÃ©rifie si l'interruption est liÃ©e Ã  une erreur. Si c'est le cas,
+    elle traite l'erreur en lisant et en jetant les caractÃ¨res du buffer de rÃ©ception.
 
-    En cas d'interruption de réception (RX), elle lit les caractères du buffer
-    matériel de réception et les dépose dans la FIFO de réception (descrFifoRX). Elle
-    active également la LED4 à chaque réception de caractère. Elle gère également
-    le contrôle de flux en ajustant la sortie RS232_RTS en fonction de la place
-    disponible dans la FIFO de réception.
+    En cas d'interruption de rÃ©ception (RX), elle lit les caractÃ¨res du buffer
+    matÃ©riel de rÃ©ception et les dÃ©pose dans la FIFO de rÃ©ception (descrFifoRX). Elle
+    active Ã©galement la LED4 Ã  chaque rÃ©ception de caractÃ¨re. Elle gÃ¨re Ã©galement
+    le contrÃ´le de flux en ajustant la sortie RS232_RTS en fonction de la place
+    disponible dans la FIFO de rÃ©ception.
 
-    Pour l'interruption de transmission (TX), elle envoie les caractères de la FIFO
-    de transmission (descrFifoTX) vers le buffer matériel de transmission tant que
-    les conditions d'émission sont remplies (CTS = 0, FIFO non vide, buffer d'émission non plein).
-    La LED5 est activée à chaque émission de caractère. Elle désactive l'interruption de
-    transmission lorsque tous les caractères ont été émis.
+    Pour l'interruption de transmission (TX), elle envoie les caractÃ¨res de la FIFO
+    de transmission (descrFifoTX) vers le buffer matÃ©riel de transmission tant que
+    les conditions d'Ã©mission sont remplies (CTS = 0, FIFO non vide, buffer d'Ã©mission non plein).
+    La LED5 est activÃ©e Ã  chaque Ã©mission de caractÃ¨re. Elle dÃ©sactive l'interruption de
+    transmission lorsque tous les caractÃ¨res ont Ã©tÃ© Ã©mis.
 
     Finalement, la routine marque la fin de l'interruption avec l'extinction de la LED3.
 
   Note :
-    Cette routine assume que la gestion des FIFOs, des LEDs, des signaux de contrôle
-    (RS232_RTS et RS232_CTS) ainsi que l'initialisation des périphériques USART1 et des
-    interruptions ont été correctement configurées ailleurs dans le code.
+    Cette routine assume que la gestion des FIFOs, des LEDs, des signaux de contrÃ´le
+    (RS232_RTS et RS232_CTS) ainsi que l'initialisation des pÃ©riphÃ©riques USART1 et des
+    interruptions ont Ã©tÃ© correctement configurÃ©es ailleurs dans le code.
 
 */
 void __ISR(_UART_1_VECTOR, ipl5AUTO) _IntHandlerDrvUsartInstance0(void)
@@ -295,7 +295,7 @@ void __ISR(_UART_1_VECTOR, ipl5AUTO) _IntHandlerDrvUsartInstance0(void)
     BOOL TxBuffFull;
     uint8_t c;
 
-    // Marque début interruption avec Led3
+    // Marque dÃ©but interruption avec Led3
     LED3_W = 1;
 
     // Is this an Error interrupt ?
@@ -304,7 +304,7 @@ void __ISR(_UART_1_VECTOR, ipl5AUTO) _IntHandlerDrvUsartInstance0(void)
     {
         /* Clear pending interrupt */
         PLIB_INT_SourceFlagClear(INT_ID_0, INT_SOURCE_USART_1_ERROR);
-        // Traitement de l'erreur à la réception.
+        // Traitement de l'erreur Ã  la rÃ©ception.
         while (PLIB_USART_ReceiverDataIsAvailable(USART_ID_1))
         {
             PLIB_USART_ReceiverByteReceive(USART_ID_1);
@@ -316,19 +316,19 @@ void __ISR(_UART_1_VECTOR, ipl5AUTO) _IntHandlerDrvUsartInstance0(void)
         PLIB_INT_SourceIsEnabled(INT_ID_0, INT_SOURCE_USART_1_RECEIVE))
     {
 
-        // Oui Test si erreur parité ou overrun
+        // Oui Test si erreur paritÃ© ou overrun
         UsartStatus = PLIB_USART_ErrorsGet(USART_ID_1);
 
         if ((UsartStatus & (USART_ERROR_PARITY |
                             USART_ERROR_FRAMING | USART_ERROR_RECEIVER_OVERRUN)) == 0)
         {
 
-            // Lecture des caractères depuis le buffer HW -> fifo SW
+            // Lecture des caractÃ¨res depuis le buffer HW -> fifo SW
             // pour savoir s'il y a une data dans le buffer HW RX
             while (PLIB_USART_ReceiverDataIsAvailable(USART_ID_1))
             {
-                // Traitement RX à faire ICI
-                // Lecture des caractères depuis le buffer HW -> fifo SW
+                // Traitement RX Ã  faire ICI
+                // Lecture des caractÃ¨res depuis le buffer HW -> fifo SW
                 c = PLIB_USART_ReceiverByteReceive(USART_ID_1);
                 PutCharInFifo(&descrFifoRX, c);
             }
@@ -347,12 +347,12 @@ void __ISR(_UART_1_VECTOR, ipl5AUTO) _IntHandlerDrvUsartInstance0(void)
             }
         }
 
-        // Traitement controle de flux reception à faire ICI
+        // Traitement controle de flux reception Ã  faire ICI
         // Gerer sortie RS232_RTS en fonction de place dispo dans fifo reception
         freeSize = GetWriteSpace(&descrFifoRX);
         if (freeSize <= 6) // a cause d'un int pour 6 char
         {
-            // Demande de ne plus émettre
+            // Demande de ne plus Ã©mettre
             RS232_RTS = 1;
         }
     } // end if RX
@@ -362,10 +362,10 @@ void __ISR(_UART_1_VECTOR, ipl5AUTO) _IntHandlerDrvUsartInstance0(void)
         PLIB_INT_SourceIsEnabled(INT_ID_0, INT_SOURCE_USART_1_TRANSMIT))
     {
 
-        // Avant d'émettre, on vérifie 3 conditions :
-        //  Si CTS = 0 autorisation d'émettre (entrée RS232_CTS)
-        //  S'il y a un caratères à émettre dans le fifo
-        //  S'il y a de la place dans le buffer d'émission
+        // Avant d'Ã©mettre, on vÃ©rifie 3 conditions :
+        //  Si CTS = 0 autorisation d'Ã©mettre (entrÃ©e RS232_CTS)
+        //  S'il y a un caratÃ¨res Ã  Ã©mettre dans le fifo
+        //  S'il y a de la place dans le buffer d'Ã©mission
         i_cts = RS232_CTS;
         TXsize = GetReadSize(&descrFifoTX);
         TxBuffFull = PLIB_USART_TransmitterBufferIsFull(USART_ID_1);
@@ -374,8 +374,8 @@ void __ISR(_UART_1_VECTOR, ipl5AUTO) _IntHandlerDrvUsartInstance0(void)
         {
             do
             {
-                // Traitement TX à faire ICI
-                // Envoi des caractères depuis le fifo SW -> buffer HW
+                // Traitement TX Ã  faire ICI
+                // Envoi des caractÃ¨res depuis le fifo SW -> buffer HW
                 GetCharFromFifo(&descrFifoTX, &c);
                 PLIB_USART_TransmitterByteSend(USART_ID_1, c);
                 LED5_W = !LED5_R; // Toggle Led5
@@ -384,10 +384,10 @@ void __ISR(_UART_1_VECTOR, ipl5AUTO) _IntHandlerDrvUsartInstance0(void)
                 TxBuffFull = PLIB_USART_TransmitterBufferIsFull(USART_ID_1);
             } while ((i_cts == 0) && (TXsize > 0) && TxBuffFull == false);
 
-            // disable TX interrupt (pour éviter une interruption inutile si plus rien à transmettre)
+            // disable TX interrupt (pour Ã©viter une interruption inutile si plus rien Ã  transmettre)
             PLIB_INT_SourceDisable(INT_ID_0, INT_SOURCE_USART_1_TRANSMIT);
         }
-        // Clear the TX interrupt Flag (Seulement après TX)
+        // Clear the TX interrupt Flag (Seulement aprÃ¨s TX)
         PLIB_INT_SourceFlagClear(INT_ID_0, INT_SOURCE_USART_1_TRANSMIT);
     }
 

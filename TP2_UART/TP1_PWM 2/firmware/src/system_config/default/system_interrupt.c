@@ -75,8 +75,8 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 void __ISR(_TIMER_1_VECTOR, ipl4AUTO) IntHandlerDrvTmrInstance0(void)
 {
      //initialiser les variable
-    uint32_t static Wait = 0;
-    uint32_t static NCYCLE = 150;
+    static uint32_t Wait = 0;
+    static uint32_t Ncycle = 150;
 
     // durant son premier tour (initialisation) il attend 3 sec avant d'aller sur service task si non toutes les 20ms
     Wait = (Wait+1)%NCYCLE;

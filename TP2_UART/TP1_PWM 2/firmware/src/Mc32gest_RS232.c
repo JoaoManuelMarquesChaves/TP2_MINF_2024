@@ -142,7 +142,6 @@ int GetMessage(S_pwmSettings *pData) {
         GetCharFromFifo(&descrFifoRX, &RxMess.LsbCrc);
         ValCrc = updateCRC16(ValCrc, RxMess.LsbCrc);
 
-        ValCrc = ValCrc;  // Ignorer la valeur finale du CRC (cette ligne semble inutile)
 
         // Vérifier si le CRC est correct
         if (ValCrc == 0) {

@@ -294,7 +294,7 @@ void __ISR(_UART_1_VECTOR, ipl5AUTO) _IntHandlerDrvUsartInstance0(void)
     int8_t i_cts;
     uint8_t TXsize, freeSize;
     BOOL TxBuffFull;
-    uint8_t c;
+    uint8_t caractere;
 
     // Marque début interruption avec Led3
     LED3_W = 1;

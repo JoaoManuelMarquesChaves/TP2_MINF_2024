@@ -16,6 +16,7 @@
 #include "gestPWM.h"
 #include "Mc32CalCrc16.h"
 #include <stdlib.h>
+#include <stdint.h>
 typedef union {
         uint16_t val;
         struct {uint8_t lsb;

@@ -150,11 +150,15 @@ void GPWM_DispSettings(S_pwmSettings *pData, int Remote)
     if (Remote == 1)
     {
         printf_lcd("** Remote settings    ");
-        lcd_ClearLine(3);
+        // Affichage de la valeur absolue de la vitesse
+        lcd_gotoxy(1, 3);
+        printf_lcd("absSpeed    ");
+        lcd_gotoxy(14, 3);
+        printf_lcd("+%2d", pData->absSpeed);       
     }
     else
     {
-        printf_lcd("Local settings    ");
+        printf_lcd("Local settings       ");
         // Affichage de la valeur absolue de la vitesse
         lcd_gotoxy(1, 3);
         printf_lcd("absSpeed    ");

@@ -292,39 +292,33 @@ void APP_Tasks(void)
         {
             // Réception des paramètres distants
             CommStatus = GetMessage(&PwmData);
-            
-            // Lecture de la position du potentiomètre
-            if (CommStatus == 0) // Local?
-            {
-                GPWM_GetSettings(&PwmData); // Local
+
+            // Initialisation des paramètres en fonction de CommStatus
+            if (CommStatus != 0) { // Remote
+                GPWM_GetSettings(&PwmDataToSend);
+                PwmData = PwmDataToSend; // Utiliser une seule variable PwmData
+            } else { // Local
+                GPWM_GetSettings(&PwmData);
             }
-            else 
-            {
-                GPWM_GetSettings(&PwmDataToSend); // Remote
-            }
-            
+        
             // Affichage des paramètres
             GPWM_DispSettings(&PwmData, CommStatus);
-            
+        
             // Exécution de la PWM et gestion du moteur
             GPWM_ExecPWM(&PwmData);
-            
-            // Effectue l'envoi après 5 cycles
-            if (IcycleTx >= 5)
-            {
+        
+            // Effectue l'envoi après 5 cycles (500 ms, car chaque cycle est de 100 ms)
+            if (IcycleTx >= 5) {
                 // Envoi des valeurs
-                if (CommStatus == 0) // Local?
-                {
-                    SendMessage(&PwmData); // Local
-                }
-                else 
-                {
-                    SendMessage(&PwmDataToSend); // Remote
-                }
+                SendMessage(&PwmData); // Utiliser PwmData initialisé correctement
+        
+                // Réinitialisation du compteur après envoi
+                IcycleTx = 0;
+            } else {
+                // Incrémentation du compteur Cycle
+                IcycleTx++;
             }
-            
-            IcycleTx++; // Incrémentation du compteur Cycle
-
+        
             // Mettre à jour l'état 
             APP_UpdateState(APP_STATE_WAIT);
             
